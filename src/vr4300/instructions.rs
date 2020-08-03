@@ -7,10 +7,10 @@ fn ex_add(rs_contents: i64, rt_contents: i64, rd: Option<u8>, bit_mode: BitMode)
                 Some(ans) => ans,
                 None => 0, // TODO: Integer overflow exception
             };
-            match bit_mode {
-                ThirtyTwo => Some(add as u64),
-                SixtyFour => Some(((((1 << 31) as u64) & add as u64) << 32) | add as u64),
-            }
+            Some(match bit_mode {
+                BitMode::ThirtyTwo => add as u32 as u64, // zero extend
+                BitMode::SixtyFour => add as u64, // sign extend
+            })
         },
         target_register: rd,
         ..Default::default()
@@ -24,10 +24,10 @@ fn ex_addi(rs_contents: i64, immediate: i16, rd: Option<u8>, bit_mode: BitMode) 
                 Some(ans) => ans,
                 None => 0, // TODO: Integer overflow exception
             };
-            match bit_mode {
-                ThirtyTwo => Some(add as u64),
-                SixtyFour => Some(((((1 << 31) as u64) & add as u64) << 32) | add as u64),
-            }
+            Some(match bit_mode {
+                BitMode::ThirtyTwo => add as u32 as u64, // zero extend
+                BitMode::SixtyFour => add as u64, // sign extend
+            })
         },
         target_register: rd,
         ..Default::default()
@@ -38,19 +38,22 @@ fn ex_addiu(rs_contents: i64, immediate: i16, rd: Option<u8>, bit_mode: BitMode)
     ExOut {
         writeback: {
             let add = (rs_contents as i32) + (immediate as i32);
-            match bit_mode {
-                ThirtyTwo => Some(add as u64),
-                SixtyFour => Some(((((1 << 31) as u64) & add as u64) << 32) | add as u64),
-            }
+            Some(match bit_mode {
+                BitMode::ThirtyTwo => add as u32 as u64, // zero extend
+                BitMode::SixtyFour => add as u64, // sign extend
+            })
         },
         target_register: rd,
         ..Default::default()
     }
 }
 
-fn ex_addu(rs_contents: u64, rt_contents: u64, rd: Option<u8>) -> ExOut {
+fn ex_addu(rs_contents: u64, rt_contents: u64, rd: Option<u8>, bit_mode: BitMode) -> ExOut {
     ExOut {
-        writeback: Some(rs_contents + rt_contents),
+        writeback: Some(match bit_mode {
+            BitMode::ThirtyTwo => ((rs_contents as i32 + rt_contents as i32) as u32 as u64), // zero extend
+            BitMode::SixtyFour => ((rs_contents as i32 + rt_contents as i32) as u64), // sign extend
+        }),
         target_register: rd,
         ..Default::default()
     }
@@ -72,68 +75,68 @@ fn ex_andi(rs_contents: u64, immediate: u16, rd: Option<u8>) -> ExOut {
     }
 }
 
-fn ex_beq(rs_contents: u64, rt_contents: u64, pc: u64, offset: u16) -> ExOut {
-    branch(rs_contents == rt_contents, pc, offset)
+fn ex_beq(rs_contents: u64, rt_contents: u64, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
+    branch(rs_contents == rt_contents, pc, offset, bit_mode)
 }
 
-fn ex_beql(rs_contents: u64, rt_contents: u64, pc: u64, offset: u16) -> ExOut {
-    branch_likely(rs_contents == rt_contents, pc, offset)
+fn ex_beql(rs_contents: u64, rt_contents: u64, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
+    branch_likely(rs_contents == rt_contents, pc, offset, bit_mode)
 }
 
-fn ex_bgez(rs_contents: i64, pc: u64, offset: u16) -> ExOut {
-    branch(rs_contents >= 0, pc, offset)
+fn ex_bgez(rs_contents: i64, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
+    branch(rs_contents >= 0, pc, offset, bit_mode)
 }
 
-fn ex_bgezal(rs_contents: i64, pc: u64, offset: u16) -> ExOut {
-    branch_and_link(rs_contents >= 0, pc, offset)
+fn ex_bgezal(rs_contents: i64, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
+    branch_and_link(rs_contents >= 0, pc, offset, bit_mode)
 }
 
-fn ex_bgezall(rs_contents: i64, pc: u64, offset: u16) -> ExOut {
-    branch_likely_and_link(rs_contents >= 0, pc, offset)
+fn ex_bgezall(rs_contents: i64, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
+    branch_likely_and_link(rs_contents >= 0, pc, offset, bit_mode)
 }
 
-fn ex_bgezl(rs_contents: u64, pc: u64, offset: u16) -> ExOut {
-    branch_likely(rs_contents >= 0, pc, offset)
+fn ex_bgezl(rs_contents: u64, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
+    branch_likely(rs_contents >= 0, pc, offset, bit_mode)
 }
 
-fn ex_bgtz(rs_contents: i64, pc: u64, offset: u16) -> ExOut {
-    branch(rs_contents > 0, pc, offset)
+fn ex_bgtz(rs_contents: i64, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
+    branch(rs_contents > 0, pc, offset, bit_mode)
 }
 
-fn ex_bgtzl(rs_contents: i64, pc: u64, offset: u16) -> ExOut {
-    branch_likely(rs_contents > 0, pc, offset)
+fn ex_bgtzl(rs_contents: i64, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
+    branch_likely(rs_contents > 0, pc, offset, bit_mode)
 }
 
-fn ex_blez(rs_contents: i64, pc: u64, offset: u16) -> ExOut {
-    branch(rs_contents <= 0, pc, offset)
+fn ex_blez(rs_contents: i64, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
+    branch(rs_contents <= 0, pc, offset, bit_mode)
 }
 
-fn ex_blezl(rs_contents: i64, pc: u64, offset: u16) -> ExOut {
-    branch_likely(rs_contents <= 0, pc, offset)
+fn ex_blezl(rs_contents: i64, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
+    branch_likely(rs_contents <= 0, pc, offset, bit_mode)
 }
 
-fn ex_bltz(rs_contents: i64, pc: u64, offset: u16) -> ExOut {
-    branch(rs_contents < 0, pc, offset)
+fn ex_bltz(rs_contents: i64, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
+    branch(rs_contents < 0, pc, offset, bit_mode)
 }
 
-fn ex_bltzal(rs_contents: i64, pc: u64, offset: u16) -> ExOut {
-    branch_and_link(rs_contents < 0, pc, offset)
+fn ex_bltzal(rs_contents: i64, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
+    branch_and_link(rs_contents < 0, pc, offset, bit_mode)
 }
 
-fn ex_bltzall(rs_contents: i64, pc: u64, offset: u16) -> ExOut {
-    branch_likely_and_link(rs_contents < 0, pc, offset)
+fn ex_bltzall(rs_contents: i64, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
+    branch_likely_and_link(rs_contents < 0, pc, offset, bit_mode)
 }
 
-fn ex_bltzl(rs_contents: i64, pc: u64, offset: u16) -> ExOut {
-    branch_likely(rs_contents < 0, pc, offset)
+fn ex_bltzl(rs_contents: i64, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
+    branch_likely(rs_contents < 0, pc, offset, bit_mode)
 }
 
-fn ex_bne(rs_contents: i64, pc: u64, offset: u16) -> ExOut {
-    branch(rs_contents != 0, pc, offset)
+fn ex_bne(rs_contents: i64, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
+    branch(rs_contents != 0, pc, offset, bit_mode)
 }
 
-fn ex_bnel(rs_contents: i64, pc: u64, offset: u16) -> ExOut {
-    branch_likely(rs_contents != 0, pc, offset)
+fn ex_bnel(rs_contents: i64, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
+    branch_likely(rs_contents != 0, pc, offset, bit_mode)
 }
 
 fn ex_break() -> ExOut {
@@ -142,10 +145,13 @@ fn ex_break() -> ExOut {
     }
 }
 
-fn branch(condition: bool, pc: u64, offset: u16) -> ExOut {
+fn branch(condition: bool, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
     ExOut {
         new_pc: if condition {
-            Some(((pc as i64) + ((offset as i64) * 4)) as u64)
+            Some(match bit_mode {
+                BitMode::ThirtyTwo => ((pc as i32) + ((offset as i16 as i32) * 4)) as u32 as u64, // zero extend
+                BitMode::SixtyFour => ((pc as i64) + ((offset as i16 as i64) * 4)) as u64, // sign extend
+            })
         } else {
             None
         },
@@ -154,10 +160,13 @@ fn branch(condition: bool, pc: u64, offset: u16) -> ExOut {
     }
 }
 
-fn branch_likely(condition: bool, pc: u64, offset: u16) -> ExOut {
+fn branch_likely(condition: bool, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
     if condition {
         ExOut {
-            new_pc: Some(((pc as i64) + ((offset as i64) * 4)) as u64),
+            new_pc: Some(match bit_mode {
+                BitMode::ThirtyTwo => ((pc as i32) + ((offset as i16 as i32) * 4)) as u32 as u64,
+                BitMode::SixtyFour => ((pc as i64) + ((offset as i16 as i64) * 4)) as u64,
+            }),
             ..Default::default()
         }
     } else {
@@ -168,10 +177,13 @@ fn branch_likely(condition: bool, pc: u64, offset: u16) -> ExOut {
     }
 }
 
-fn branch_and_link(condition: bool, pc: u64, offset: u16) -> ExOut {
+fn branch_and_link(condition: bool, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
     ExOut {
         new_pc: if condition {
-            Some(((pc as i64) + ((offset as i64) * 4)) as u64)
+            Some(match bit_mode {
+                BitMode::ThirtyTwo => ((pc as i32) + ((offset as i16 as i32) * 4)) as u32 as u64,
+                BitMode::SixtyFour => ((pc as i64) + ((offset as i16 as i64) * 4)) as u64,
+            })
         } else {
             None
         },
@@ -181,10 +193,13 @@ fn branch_and_link(condition: bool, pc: u64, offset: u16) -> ExOut {
     }
 }
 
-fn branch_likely_and_link(condition: bool, pc: u64, offset: u16) -> ExOut {
+fn branch_likely_and_link(condition: bool, pc: u64, offset: u16, bit_mode: BitMode) -> ExOut {
     if condition {
         ExOut {
-            new_pc: Some(((pc as i64) + ((offset as i64) * 4)) as u64),
+            new_pc: Some(match bit_mode {
+                BitMode::ThirtyTwo => ((pc as i32) + ((offset as i16 as i32) * 4)) as u32 as u64,
+                BitMode::SixtyFour => ((pc as i64) + ((offset as i16 as i64) * 4)) as u64,
+            }),
             writeback: Some(pc + 8),
             target_register: Some(31),
             ..Default::default()
@@ -260,4 +275,3 @@ fn ex_divu(rs_contents: u64, rt_contents: u64, rd: Option<u8>) -> ExOut {
         ..Default::default()
     }
 }
-

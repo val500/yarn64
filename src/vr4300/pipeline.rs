@@ -20,8 +20,6 @@ impl Executor {
     fn execute(&self) {
         // Parse ex in and execute functions
     }
-
-    
 }
 
 
