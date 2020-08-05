@@ -42,6 +42,19 @@ pub struct ExOut {
     pub discard_next_instruction: bool,
     pub hi_writeback: Option<u64>,
     pub lo_writeback: Option<u64>,
+    pub load_input: Option<LoadInput>,
+}
+
+pub struct LoadInput {
+    pub vaddr_writeback: u64,
+    pub target_register: u8,
+    pub load_type: LoadType,
+}
+pub enum LoadType {
+    SignedByte,
+    UnsignedByte,
+    SignedDoubleword,
+    UnsignedDoubleword
 }
 
 struct IcOut {}

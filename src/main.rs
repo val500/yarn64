@@ -1,5 +1,4 @@
-use std::thread;
-use std::sync::{Mutex, Arc};
+#![allow(dead_code)]
 mod vr4300;
 fn main() {
 
