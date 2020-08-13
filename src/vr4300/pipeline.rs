@@ -43,15 +43,23 @@ pub struct ExOut {
     pub hi_writeback: Option<u64>,
     pub lo_writeback: Option<u64>,
     pub load_input: Option<LoadInput>,
+    pub store_input: Option<StoreInput>,
 }
 
 pub struct LoadInput {
     pub vaddr_writeback: u64,
     pub target_register: u8,
-    pub load_type: LoadType,
+    pub load_type: LoadStoreType,
     pub llAddr: Option<u64>
 }
-pub enum LoadType {
+
+pub struct StoreInput {
+    pub vaddr: u64,
+    pub store_contents: u64,
+    pub store_type: LoadStoreType,
+}
+
+pub enum LoadStoreType {
     SignedByte,
     UnsignedByte,
     Doubleword,

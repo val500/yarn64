@@ -1,6 +1,6 @@
 use crate::vr4300::{
     cpu::BitMode,
-    pipeline::{ExOut, LoadInput, LoadType},
+    pipeline::{ExOut, LoadInput, LoadStoreType, StoreInput},
 };
 
 fn ex_add(rs_contents: i64, rt_contents: i64, rd: Option<u8>, bit_mode: BitMode) -> ExOut {
@@ -448,7 +448,7 @@ fn ex_load(
     offset: u16,
     rt: Option<u8>,
     bit_mode: BitMode,
-    load_type: LoadType,
+    load_type: LoadStoreType,
 ) -> ExOut {
     ExOut {
         load_input: Some(LoadInput {
@@ -537,3 +537,100 @@ fn ex_multu(rs_contents: u64, rt_contents: u64, bit_mode: BitMode) -> ExOut {
         ..Default::default()
     }
 }
+
+fn ex_nor(rs_contents: u64, rt_contents: u64, rd: Option<u8>, bit_mode: BitMode) -> ExOut {
+    ExOut {
+        writeback: Some(match bit_mode {
+            BitMode::ThirtyTwo => !(rs_contents as u32 | rt_contents as u32) as u64,
+            BitMode::SixtyFour => !(rs_contents | rt_contents),
+        }),
+        target_register: rd,
+        ..Default::default()
+    }
+}
+
+fn ex_or(rs_contents: u64, rt_contents: u64, rd: Option<u8>) -> ExOut {
+    ExOut {
+        writeback: Some(rs_contents | rt_contents),
+        target_register: rd,
+        ..Default::default()
+    }
+}
+
+fn ex_ori(rs_contents: u64, immediate: u16, rt: Option<u8>) -> ExOut {
+    ExOut {
+        writeback: Some(rs_contents | immediate as u64),
+        target_register: rt,
+        ..Default::default()
+    }
+}
+
+fn ex_store(
+    base_contents: u64,
+    offset: u16,
+    rt_contents: u64,
+    store_type: LoadStoreType,
+    bit_mode: BitMode,
+) -> ExOut {
+    ExOut {
+        store_input: Some(StoreInput {
+            vaddr: match bit_mode {
+                BitMode::ThirtyTwo => (base_contents as u32 + offset as u32) as u64,
+                BitMode::SixtyFour => base_contents + offset as u64,
+            },
+            store_contents: rt_contents,
+            store_type,
+        }),
+        ..Default::default()
+    }
+}
+
+//TODO: Store Conditional
+
+fn ex_sll(rt_contents: u64, sa: u8, rd: Option<u8>, bit_mode: BitMode) -> ExOut {
+    ExOut {
+        writeback: Some(match bit_mode {
+            BitMode::ThirtyTwo => ((rt_contents as u32) << sa) as u64,
+            BitMode::SixtyFour => ((rt_contents as u32) << sa) as i32 as u64,
+        }),
+        target_register: rd,
+        ..Default::default()
+    }
+}
+
+fn ex_sllv(rs_contents: u64, rt_contents: u64, rd: Option<u8>, bit_mode: BitMode) -> ExOut {
+    let sa = (rs_contents as u8) & 31;
+    ExOut {
+        writeback: Some(match bit_mode {
+            BitMode::ThirtyTwo => ((rt_contents as u32) << sa) as u64,
+            BitMode::SixtyFour => ((rt_contents as u32) << sa) as i32 as u64,
+        }),
+        target_register: rd,
+        ..Default::default()
+    }
+}
+
+fn ex_slt(rs_contents: u64, rt_contents: u64, rd: Option<u8>) -> ExOut {
+    ExOut {
+        writeback: Some(if rs_contents < rt_contents { 1 } else { 0 }),
+        target_register: rd,
+        ..Default::default()
+    }
+}
+
+fn ex_slti(rs_contents: u64, immediate: u16, rt: Option<u8>) -> ExOut {
+    ExOut {
+        writeback: Some(if (rs_contents as i64) < (immediate as i16 as i64) { 1 } else { 0 }),
+        target_register: rt,
+        ..Default::default()
+    }
+}
+
+fn ex_sltiu(rs_contents: u64, immediate: u16, rt: Option<u8>) -> ExOut {
+    ExOut {
+        writeback: Some(if rs_contents < (immediate as i16 as u64) { 1 } else { 0 }),
+        target_register: rt,
+        ..Default::default()
+    }
+}
+
