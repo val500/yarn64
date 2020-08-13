@@ -1,4 +1,7 @@
-use crate::vr4300::{cpu::BitMode, pipeline::{ExOut, LoadInput, LoadType}};
+use crate::vr4300::{
+    cpu::BitMode,
+    pipeline::{ExOut, LoadInput, LoadType},
+};
 
 fn ex_add(rs_contents: i64, rt_contents: i64, rd: Option<u8>, bit_mode: BitMode) -> ExOut {
     ExOut {
@@ -440,43 +443,96 @@ fn ex_jar(rs_contents: u64) -> ExOut {
     }
 }
 
-fn ex_lb(base_contents: u64, offset: u16, rt: Option<u8>, bit_mode: BitMode) -> ExOut {
+fn ex_load(
+    base_contents: u64,
+    offset: u16,
+    rt: Option<u8>,
+    bit_mode: BitMode,
+    load_type: LoadType,
+) -> ExOut {
     ExOut {
         load_input: Some(LoadInput {
             vaddr_writeback: match bit_mode {
-                BitMode::ThirtyTwo => ((base_contents as i32) + (offset as i16 as i32)) as u32 as u64,
+                BitMode::ThirtyTwo => {
+                    ((base_contents as i32) + (offset as i16 as i32)) as u32 as u64
+                }
                 BitMode::SixtyFour => ((base_contents as i64) + (offset as i16 as i64)) as u64,
             },
             target_register: rt.unwrap(),
-            load_type: LoadType::SignedByte,
+            load_type,
+            llAddr: None,
+        }),
+        ..Default::default()
+    }
+}
+// TODO: Link Load
+
+fn ex_lui(rt: Option<u8>, immediate: u16, bit_mode: BitMode) -> ExOut {
+    ExOut {
+        writeback: Some(match bit_mode {
+            BitMode::ThirtyTwo => ((immediate as u32) << 16) as u64,
+            BitMode::SixtyFour => ((immediate as i32) << 16) as u64,
+        }),
+        target_register: rt,
+        ..Default::default()
+    }
+}
+
+fn ex_mfhi(hi_contents: u64, rd: Option<u8>) -> ExOut {
+    ExOut {
+        writeback: Some(hi_contents),
+        target_register: rd,
+        ..Default::default()
+    }
+}
+
+fn ex_mflo(lo_contents: u64, rd: Option<u8>) -> ExOut {
+    ExOut {
+        writeback: Some(lo_contents),
+        target_register: rd,
+        ..Default::default()
+    }
+}
+
+fn ex_mthi(rs_contents: u64) -> ExOut {
+    ExOut {
+        hi_writeback: Some(rs_contents),
+        ..Default::default()
+    }
+}
+
+fn ex_mtlo(rs_contents: u64) -> ExOut {
+    ExOut {
+        lo_writeback: Some(rs_contents),
+        ..Default::default()
+    }
+}
+
+fn ex_mult(rs_contents: u64, rt_contents: u64, bit_mode: BitMode) -> ExOut {
+    let mult = rs_contents as i32 * rt_contents as i32;
+    ExOut {
+        lo_writeback: Some(match bit_mode {
+            BitMode::ThirtyTwo => mult as u32 as u64,
+            BitMode::SixtyFour => mult as u64,
+        }),
+        hi_writeback: Some(match bit_mode {
+            BitMode::ThirtyTwo => (mult >> 32) as u32 as u64,
+            BitMode::SixtyFour => (mult >> 32) as u64,
         }),
         ..Default::default()
     }
 }
 
-fn ex_lbu(base_contents: u64, offset: u16, rt: Option<u8>, bit_mode: BitMode) -> ExOut {
+fn ex_multu(rs_contents: u64, rt_contents: u64, bit_mode: BitMode) -> ExOut {
+    let mult = rs_contents as u32 * rt_contents as u32;
     ExOut {
-        load_input: Some(LoadInput {
-            vaddr_writeback: match bit_mode {
-                BitMode::ThirtyTwo => ((base_contents as i32) + (offset as i16 as i32)) as u32 as u64,
-                BitMode::SixtyFour => ((base_contents as i64) + (offset as i16 as i64)) as u64,
-            },
-            target_register: rt.unwrap(),
-            load_type: LoadType::UnsignedByte,
+        lo_writeback: Some(match bit_mode {
+            BitMode::ThirtyTwo => mult as u32 as u64,
+            BitMode::SixtyFour => mult as u64,
         }),
-        ..Default::default()
-    }
-}
-
-fn ex_ld(base_contents: u64, offset: u16, rt: Option<u8>, bit_mode: BitMode) -> ExOut {
-    ExOut {
-        load_input: Some(LoadInput {
-            vaddr_writeback: match bit_mode {
-                BitMode::ThirtyTwo => ((base_contents as i32) + (offset as i16 as i32)) as u32 as u64,
-                BitMode::SixtyFour => ((base_contents as i64) + (offset as i16 as i64)) as u64,
-            },
-            target_register: rt.unwrap(),
-            load_type: LoadType::UnsignedDoubleword,
+        hi_writeback: Some(match bit_mode {
+            BitMode::ThirtyTwo => (mult >> 32) as u32 as u64,
+            BitMode::SixtyFour => (mult >> 32) as u64,
         }),
         ..Default::default()
     }

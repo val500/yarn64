@@ -49,12 +49,20 @@ pub struct LoadInput {
     pub vaddr_writeback: u64,
     pub target_register: u8,
     pub load_type: LoadType,
+    pub llAddr: Option<u64>
 }
 pub enum LoadType {
     SignedByte,
     UnsignedByte,
-    SignedDoubleword,
-    UnsignedDoubleword
+    Doubleword,
+    DoublewordLeft,
+    DoublewordRight,
+    Halfword,
+    UnsignedHalfword,
+    Word,
+    WordLeft,
+    WordRight,
+    WordUnsigned
 }
 
 struct IcOut {}
